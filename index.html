@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aseguramiento de la Calidad</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+</head>
+
+<style>
+
+.ts-control{
+padding: 3px 4px;
+border: 0;
+}
+
+.plugin-dropdown_input.focus.dropdown-active .ts-control
+ {
+  border: 0;
+}
+.logo-tigre {
+    height: 60px;
+    object-fit: contain;
+    
+}
+.logo-unemi {
+    height: 50px;
+    object-fit: contain;
+    
+}
+.franja-superior {
+    background-color: #002E45;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    vertical-align: middle;
+}
+.franja-naranja {
+    height: 10px;
+    background-color: #FF6900;
+}
+</style>
+
+
+<!-- Encabezado -->
+<div class="franja-superior flex justify-between items-center px-3 bg-gray-800">
+    <!-- Izquierda -->
+    <div class="flex items-center">
+        <img src="img/logo-unemi.png" alt="Logo" class="logo-tigre h-12">
+    </div>
+
+    <!-- CABECERA DE LA PAGINA -->
+    <div class="text-center flex-grow">
+        <h2 class="text-white font-bold">Aseguramiento de la Calidad</h2>
+    </div>
+
+    <!-- Derecha -->
+    <div class="flex items-center justify-end">
+        <img src="img/unemi-logo.png" alt="Logo" class="logo-unemi h-12">
+    </div>
+</div>
+
+<!-- Franja naranja -->
+<div class="franja-naranja h-2 bg-orange-500"></div>
+
+<body class="bg-gray-50">
+  <main class="max-w-4xl mx-auto -4">
+    <h1 class="text-2xl font-semibold mb-4">Solicitud de creación/actualización de normativas</h1>
+
+    <form id="formNormativa" class="bg-white p-6 rounded-2xl shadow-sm space-y-4">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Unidad Organizacional*</label>
+          <select id="unidad" placeholder="Escribe para buscar…" class="w-full border rounded-xl px-3 py-2" required></select>
+
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">Solicitante*</label>
+          <input id="solicitante" type="text" class="w-full border rounded-xl px-3 py-2 bg-gray-50" required readonly />
+        </div>
+ 
+          <input id="correo" type="hidden" class="w-full border rounded-xl px-3 py-2 bg-gray-50" required readonly />
+        
+        <div>
+          <label class="block text-sm font-medium">Personal asignado para acompañamiento*</label>
+          <input id="personalAcomp" type="text" class="w-full border rounded-xl px-3 py-2" required />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">Correo del Personal asignado*</label>
+          <input id="correoPersonalAcomp" type="email" class="w-full border rounded-xl px-3 py-2" required />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">Tipo de solicitud *</label>
+          <select id="tipoSolicitud" class="w-full border rounded-xl px-3 py-2" required>
+            <option>Nueva normativa</option>
+            <option>Reforma de normativa</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">Normativa a reformar</label>
+          <select id="normativaReformar" class="w-full border rounded-xl px-3 py-2" disabled>
+              <option value="">Seleccione…</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Motivo *</label>
+        <textarea id="motivo" class="w-full border rounded-xl px-3 py-2 min-h-[96px]" required></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Proyecto borrador (PDF, DOCX…) *</label>
+        <input id="proyectoBorrador" type="file" class="w-full border rounded-xl px-3 py-2" required />
+      </div>
+
+      <input id="estado" type="hidden" value="Pendiente" />
+      <input id="personalAsignado" type="hidden" value="Por definir" />
+      <input id="fechaAsignacion" type="hidden" value="" />
+
+      <label class="flex gap-3 items-start bg-gray-50 p-3 rounded-xl">
+        <input id="confirmacion" type="checkbox" class="mt-1" required />
+        <span class="text-sm">Confirmo que la información proporcionada es verídica, se consultó con las unidades intervinientes sobre su rol en el normativa y que adjunto el proyecto borrador conforme a los lineamientos institucionales.</span>
+      </label>
+
+      <div class="flex justify-end gap-3">
+        <button type="reset" class="border px-4 py-2 rounded-xl">Limpiar</button>
+        <button id="btnEnviar" type="submit" class="bg-emerald-600 text-white px-5 py-2 rounded-xl">Enviar solicitud</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // === CONFIG ===
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxeiHB0r60qS88wQwjqea3UtGh-Tx6UIT4h0EXV4orH06stEt-Wfim5uRfF6UGMBwhf/exec'; // REEMPLAZA ESTO POR EL ID REAL
+    
+    const API_LIMIT = 5; // tope de resultados por búsqueda
+
+    
+    function jsonp(url, params = {}) {
+      return new Promise((resolve, reject) => {
+        const cbName = `cb_jsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        params.callback = cbName;
+        const qs = new URLSearchParams(params).toString();
+        const script = document.createElement('script');
+        script.src = `${url}?${qs}`;
+        script.async = true;
+
+        window[cbName] = (data) => { resolve(data); cleanup(); };
+        script.onerror = () => { reject(new Error('JSONP request failed')); cleanup(); };
+
+        function cleanup() {
+          delete window[cbName];
+          script.remove();
+        }
+
+        document.body.appendChild(script);
+      });
+    }
+
+
+    // Normativa a reformar
+    const tipo = document.getElementById('tipoSolicitud');
+    function syncNormativaEnabled() {
+      const isReforma = tipo.value === 'Reforma de normativa';
+      if (isReforma) {
+        normativaSelect.enable();        // <- habilita el control TomSelect
+      } else {
+        normativaSelect.clear(true);     // limpia selección y opciones
+        normativaSelect.disable();       // <- deshabilita el control TomSelect
+      }
+    }
+
+    // Cache y control de carreras opcional
+    let lastReqIdNorm = 0;
+    const lruNorm = new Map();
+    const LRU_NORM_MAX = 30;
+    function lruNormSet(k, v){
+      if (lruNorm.has(k)) lruNorm.delete(k);
+      lruNorm.set(k, v);
+      if (lruNorm.size > LRU_NORM_MAX) lruNorm.delete(lruNorm.keys().next().value);
+    }
+
+    const normativaSelect = new TomSelect('#normativaReformar', {
+    valueField: 'normativa',
+    labelField: 'normativa',
+    searchField: ['normativa'],
+    create: false,
+    maxItems: 1,
+    openOnFocus: true,
+    closeAfterSelect: true,
+    loadThrottle: 300,
+    maxOptions: API_LIMIT,
+    plugins: ['dropdown_input'],
+    placeholder: 'Escribe para buscar…',
+    shouldLoad: q => q && q.trim().length >= 2,
+
+      load: function(query, callback){
+        if (!query || query.trim().length < 2) return callback();
+
+        const key = query.trim().toLowerCase();
+        if (lruNorm.has(key)) { callback(lruNorm.get(key)); return; }
+
+        const reqId = ++lastReqIdNorm;
+        jsonp(API_URL, { src: 'normativas', q: query, limit: API_LIMIT })
+          .then(data => {
+            if (reqId !== lastReqIdNorm) return callback();
+            const arr = Array.isArray(data) ? data : [];
+            // normaliza objetos: { normativa: '...' }
+            const opts = arr.map(o => ({ normativa: String(o.normativa || '').trim() }))
+                            .filter(o => o.normativa);
+            lruNormSet(key, opts);
+            callback(opts);
+          })
+          .catch(() => callback());
+      },
+
+      render: {
+        option: (item, escape) => `
+          <div class="py-1">
+            <div class="font-medium">${escape(item.normativa || '')}</div>
+          </div>`,
+        item: (item, escape) => `<div>${escape(item.normativa || '')}</div>`
+      }
+    });
+
+
+    let lastReqId = 0;                // id de la última búsqueda disparada
+    const lru = new Map();            // cache simple {query -> resultados}; tamaño acotado
+    const LRU_MAX = 30;
+    function lruSet(k, v){
+      if (lru.has(k)) lru.delete(k);
+      lru.set(k, v);
+      if (lru.size > LRU_MAX) lru.delete(lru.keys().next().value);
+    }
+
+    const unidadSelect = new TomSelect('#unidad', {
+      valueField: 'cedula',
+      labelField: 'departamento',
+      searchField: ['departamento','empleado','correo'],
+      create: false,
+      maxItems: 1,
+      openOnFocus: true,          // se abre al enfocar (UX tipo select)
+      closeAfterSelect: true,     // cierra al elegir
+      loadThrottle: 300,
+      persist: false,
+      maxOptions: API_LIMIT, 
+      /* 👇 habilita buscador dentro del dropdown (como la 2da imagen) */
+      plugins: ['dropdown_input'],
+      placeholder: 'Escribe para buscar…',
+      shouldLoad: function(q){
+       return q && q.trim().length >= 2;
+       },
+
+      load: function(query, callback) {
+        if (!query || query.trim().length < 2) return callback();
+        const key = query.trim().toLowerCase();
+        if (lru.has(key)) { callback(lru.get(key)); return; }
+
+        const reqId = ++lastReqId;    // marca esta búsqueda como la más reciente
+        jsonp(API_URL, { q: query, API_LIMIT })
+          .then(data => {
+            if (reqId !== lastReqId) return callback();
+            const arr = Array.isArray(data) ? data : [];
+            const opts = arr.map(o => ({
+              ...o,
+              cedula: String(o.cedula ?? '').trim(),
+              departamento: String(o.departamento ?? '').trim(),
+              empleado: String(o.empleado ?? '').trim(),
+              correo: String(o.correo ?? '').trim(),
+            }));
+            lruSet(key, opts);
+            callback(opts);
+          })
+          .catch(() => callback());
+      },
+
+      render: {
+        option: function(item, escape){
+          return `
+            <div class="py-1">
+              <div class="font-medium">${escape(item.departamento || item.empleado || item.cedula || '')}</div>
+              <div class="subtitle">
+                ${escape(item.empleado || '')}
+                ${item.empleado && item.correo ? ' · ' : ''}
+                ${escape(item.correo || '')}
+              </div>
+            </div>`;
+        },
+        // seleccionado simple (texto plano)
+        item: function(item, escape){
+          return `<div>${escape(item.departamento || item.empleado || item.cedula || '')}</div>`;
+        }
+      },
+
+      onItemAdd: async function(value){
+        const selected = this.options?.[String(value)];
+        if (selected && (selected.correo || selected.empleado)) {
+          fillDependentFields(selected);
+          return;
+        }
+        try {
+          const u = await jsonp(API_URL, { cedula: String(value), nocache: 1 });
+          fillDependentFields(u);
+        } catch {}
+      }
+    });
+
+
+  function fillDependentFields(u) {
+    document.getElementById('correo').value = u?.correo || '';
+    document.getElementById('solicitante').value = u?.empleado || '';
+  }
+
+    // Validación correo
+    function validarCorreoPersonal() {
+      const correo = document.getElementById('correoPersonalAcomp').value.trim();
+      if (!correo.endsWith('@unemi.edu.ec')) {
+        alert('El correo del personal asignado debe terminar en @unemi.edu.ec');
+        return false;
+      }
+      return true;
+    }
+
+    document.getElementById('formNormativa').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!e.target.checkValidity()) { e.target.reportValidity(); return; }
+      if (!validarCorreoPersonal()) return;
+
+      const fd = new FormData();
+      fd.append('correo', document.getElementById('correo').value);
+      const selectedId = unidadSelect.getValue();
+      const unidadNombre =
+        selectedId && unidadSelect.options[selectedId]
+          ? (unidadSelect.options[selectedId].departamento || '').trim()
+          : (selectedId ? (unidadSelect.getItem(String(selectedId))?.textContent?.trim() || '') : '');
+      fd.append('unidad', unidadNombre);
+      fd.append('solicitante', document.getElementById('solicitante').value);
+      fd.append('personalAcomp', document.getElementById('personalAcomp').value);
+      fd.append('correoPersonalAcomp', document.getElementById('correoPersonalAcomp').value);
+      fd.append('tipoSolicitud', document.getElementById('tipoSolicitud').value);
+      fd.append('motivo', document.getElementById('motivo').value);
+      fd.append('normativaReformar', document.getElementById('normativaReformar').value);
+      const file = document.getElementById('proyectoBorrador').files[0];
+      if (file) fd.append('proyectoBorrador', file, file.name);
+      fd.append('estado', document.getElementById('estado').value);
+      fd.append('personalAsignado', document.getElementById('personalAsignado').value);
+      fd.append('fechaAsignacion', document.getElementById('fechaAsignacion').value);
+      fd.append('confirmacion', document.getElementById('confirmacion').checked ? 'true' : 'false');
+
+      const btn = document.getElementById('btnEnviar');
+      btn.disabled = true; btn.textContent = 'Enviando…';
+
+      try {
+        const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
+        if (!resp.ok) throw new Error(await resp.text());
+        alert('Solicitud enviada correctamente');
+        e.target.reset();
+        document.getElementById('estado').value = 'Pendiente';
+        document.getElementById('personalAsignado').value = 'Por definir';
+        document.getElementById('fechaAsignacion').value = '';
+        unidadSelect.clear();
+      } catch (err) {
+        console.error(err);
+        alert('No se pudo enviar la solicitud. Verifique la URL/permiso del webhook (y CORS).');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Enviar solicitud';
+      }
+    });
+    jsonp(API_URL, { test: 1 }).catch(()=>{});
+    // 1) Al cargar la página:
+    syncNormativaEnabled();
+
+    // 2) Al cambiar el tipo:
+    tipo.addEventListener('change', syncNormativaEnabled);
+  </script>
+</body>
+</html>
