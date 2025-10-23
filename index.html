@@ -86,17 +86,17 @@ border: 0;
           <input id="correo" type="hidden" class="w-full border rounded-xl px-3 py-2 bg-gray-50" required readonly />
         
         <div>
-          <label class="block text-sm font-medium">Personal asignado para acompañamiento*</label>
+          <label class="block text-sm font-medium">Delegado de la unidad solicitante*</label>
           <input id="personalAcomp" type="text" class="w-full border rounded-xl px-3 py-2" required />
         </div>
 
         <div>
-          <label class="block text-sm font-medium">Correo del Personal asignado*</label>
+          <label class="block text-sm font-medium">Correo del delegado*</label>
           <input id="correoPersonalAcomp" type="email" class="w-full border rounded-xl px-3 py-2" required />
         </div>
 
         <div>
-          <label class="block text-sm font-medium">Tipo de solicitud *</label>
+          <label class="block text-sm font-medium">Tipo de solicitud*</label>
           <select id="tipoSolicitud" class="w-full border rounded-xl px-3 py-2" required>
             <option>Nueva normativa</option>
             <option>Reforma de normativa</option>
@@ -112,12 +112,14 @@ border: 0;
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Motivo *</label>
+        <label class="block text-sm font-medium">Motivo*</label>
         <textarea id="motivo" class="w-full border rounded-xl px-3 py-2 min-h-[96px]" required></textarea>
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Proyecto borrador (DOCX, WORD...) *</label>
+        <label class="block text-sm font-medium">Proyecto borrador*</label>
+        <label class="block text-sm">(Adjuntar en formato ".docx", las plantillas se encuentran en el siguiente enlace: <a href="https://drive.google.com/drive/folders/1GrGfXstlug_O6lZtiBYoIMg3ODQ8zlRt" target="_blank"><strong>Formatos Institucionales</strong> </a>.)</label>
+ 
         <input id="proyectoBorrador" type="file" class="w-full border rounded-xl px-3 py-2" required />
       </div>
 
