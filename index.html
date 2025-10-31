@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="es">
 <head>
@@ -6,6 +7,7 @@
   <title>Aseguramiento de la Calidad</title>
   <link rel="icon" type="image/png" href="https://dac-ftd.github.io/pry-admin/img/logo-unemi.png">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css">
   <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 </head>
@@ -120,7 +122,7 @@ border: 0;
         <label class="block text-sm font-medium">Proyecto borrador*</label>
         <label class="block text-sm">(Adjuntar en formato ".docx", las plantillas se encuentran en el siguiente enlace: <a href="https://drive.google.com/drive/folders/1GrGfXstlug_O6lZtiBYoIMg3ODQ8zlRt" target="_blank"><strong>Formatos Institucionales</strong> </a>.)</label>
  
-        <input id="proyectoBorrador" type="file" class="w-full border rounded-xl px-3 py-2" required />
+        <input id="proyectoBorrador" type="file" class="w-full border rounded-xl px-3 py-2" required accept=".docx" />
       </div>
 
       <input id="estado" type="hidden" value="Pendiente" />
@@ -325,8 +327,12 @@ border: 0;
     function validarCorreoPersonal() {
       const correo = document.getElementById('correoPersonalAcomp').value.trim();
       if (!correo.endsWith('@unemi.edu.ec')) {
-        alert('El correo del personal asignado debe terminar en @unemi.edu.ec');
-        return false;
+        Swal.fire({
+          icon: 'warning',
+          title: 'Correo no válido',
+          text: 'El correo del personal debe ser un correo institucional'
+        });
+        return;
       }
       return true;
     }
@@ -350,8 +356,28 @@ border: 0;
       fd.append('tipoSolicitud', document.getElementById('tipoSolicitud').value);
       fd.append('motivo', document.getElementById('motivo').value);
       fd.append('normativaReformar', document.getElementById('normativaReformar').value);
+
       const file = document.getElementById('proyectoBorrador').files[0];
-      if (file) fd.append('proyectoBorrador', file, file.name);
+      if (!file) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Falta proyecto borrador',
+          text: 'Debe adjuntar el proyecto borrador (.docx)'
+        });
+        return;
+      }
+      // Validar tipo o extensión
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'docx') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Formato de documento no aceptado',
+          text: 'Solo se permiten archivos en formato Word(.docx)'
+        });
+        return;
+      }
+      fd.append('proyectoBorrador', file, file.name);
+
       fd.append('estado', document.getElementById('estado').value);
       fd.append('personalAsignado', document.getElementById('personalAsignado').value);
       fd.append('fechaAsignacion', document.getElementById('fechaAsignacion').value);
@@ -361,9 +387,14 @@ border: 0;
       btn.disabled = true; btn.textContent = 'Enviando…';
 
       try {
-        const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
+        //const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
+        const resp = await fetch('https://hook.us2.make.com/a78ytrwcsd1v84qnt4cs6tail2yudlg8', { method: 'POST', body: fd });
         if (!resp.ok) throw new Error(await resp.text());
-        alert('Solicitud enviada correctamente');
+        Swal.fire({
+          icon: 'success',
+          title: 'Solicitud completada',
+          text: 'Su Solicitud fue enviada correctamente.'
+        });
         e.target.reset();
         document.getElementById('estado').value = 'Pendiente';
         document.getElementById('personalAsignado').value = 'Por definir';
@@ -371,7 +402,12 @@ border: 0;
         unidadSelect.clear();
       } catch (err) {
         console.error(err);
-        alert('No se pudo enviar la solicitud. Verifique la URL/permiso del webhook (y CORS).');
+        //alert('No se pudo enviar la solicitud. Verifique la URL/permiso del webhook (y CORS).');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Error de envío',
+          text: 'No se pudo enviar sus solicitud, intente nuevamente o espere unos minutos. Si el error se mantiene contactese con la Dirección de Aseguramiento de la Calidad'
+        });
       } finally {
         btn.disabled = false; btn.textContent = 'Enviar solicitud';
       }
