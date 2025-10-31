@@ -387,8 +387,8 @@ border: 0;
       btn.disabled = true; btn.textContent = 'Enviando…';
 
       try {
-        //const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
-        const resp = await fetch('https://hook.us2.make.com/a78ytrwcsd1v84qnt4cs6tail2yudlg8', { method: 'POST', body: fd });
+        const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
+        //const resp = await fetch('https://hook.us2.make.com/a78ytrwcsd1v84qnt4cs6tail2yudlg8', { method: 'POST', body: fd }); //Webhook de prueba
         if (!resp.ok) throw new Error(await resp.text());
         Swal.fire({
           icon: 'success',
@@ -421,3 +421,4 @@ border: 0;
   </script>
 </body>
 </html>
+
