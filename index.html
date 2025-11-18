@@ -136,7 +136,7 @@ border: 0;
 
       <div class="flex justify-end gap-3">
         <button type="reset" class="border px-4 py-2 rounded-xl">Limpiar</button>
-        <button id="btnEnviar" type="submit" class="bg-emerald-600 text-white px-5 py-2 rounded-xl">Enviar solicitud</button>
+        <button id="btnEnviar" type="button" class="bg-emerald-600 text-white px-5 py-2 rounded-xl">Enviar solicitud</button>
       </div>
     </form>
   </main>
@@ -337,18 +337,62 @@ border: 0;
       return true;
     }
 
-    document.getElementById('formNormativa').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!e.target.checkValidity()) { e.target.reportValidity(); return; }
-      if (!validarCorreoPersonal()) return;
+    // Evita que el formulario pueda enviarse nativamente por cualquier motivo
+    const form = document.getElementById('formNormativa');
+    form.addEventListener('submit', e => e.preventDefault());
 
+    // Botón manual
+    document.getElementById('btnEnviar').addEventListener('click', enviarFormulario);
+
+    async function enviarFormulario() {
+
+      // Validar HTML5
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      // Validar correo institucional del delegado
+      if (!document.getElementById('correoPersonalAcomp').value.trim().endsWith('@unemi.edu.ec')) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Correo no válido',
+          text: 'El correo del personal debe ser institucional (@unemi.edu.ec)'
+        });
+        return;
+      }
+
+      // Validar archivo
+      const fileInput = document.getElementById('proyectoBorrador');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Falta proyecto borrador',
+          text: 'Debe adjuntar un archivo .docx'
+        });
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.docx')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Archivo no válido',
+          text: 'Solo se permiten archivos .docx'
+        });
+        return;
+      }
+
+      // Crear FormData de forma segura
       const fd = new FormData();
       fd.append('correo', document.getElementById('correo').value);
+
       const selectedId = unidadSelect.getValue();
-      const unidadNombre =
-        selectedId && unidadSelect.options[selectedId]
-          ? (unidadSelect.options[selectedId].departamento || '').trim()
-          : (selectedId ? (unidadSelect.getItem(String(selectedId))?.textContent?.trim() || '') : '');
+      const unidadNombre = selectedId && unidadSelect.options[selectedId]
+        ? (unidadSelect.options[selectedId].departamento || '').trim()
+        : '';
+
       fd.append('unidad', unidadNombre);
       fd.append('solicitante', document.getElementById('solicitante').value);
       fd.append('personalAcomp', document.getElementById('personalAcomp').value);
@@ -356,26 +400,6 @@ border: 0;
       fd.append('tipoSolicitud', document.getElementById('tipoSolicitud').value);
       fd.append('motivo', document.getElementById('motivo').value);
       fd.append('normativaReformar', document.getElementById('normativaReformar').value);
-
-      const file = document.getElementById('proyectoBorrador').files[0];
-      if (!file) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Falta proyecto borrador',
-          text: 'Debe adjuntar el proyecto borrador (.docx)'
-        });
-        return;
-      }
-      // Validar tipo o extensión
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (ext !== 'docx') {
-        Swal.fire({
-          icon: 'error',
-          title: 'Formato de documento no aceptado',
-          text: 'Solo se permiten archivos en formato Word(.docx)'
-        });
-        return;
-      }
       fd.append('proyectoBorrador', file, file.name);
 
       fd.append('estado', document.getElementById('estado').value);
@@ -383,35 +407,69 @@ border: 0;
       fd.append('fechaAsignacion', document.getElementById('fechaAsignacion').value);
       fd.append('confirmacion', document.getElementById('confirmacion').checked ? 'true' : 'false');
 
+      // Botón en modo "Enviando..."
       const btn = document.getElementById('btnEnviar');
-      btn.disabled = true; btn.textContent = 'Enviando…';
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+
+      // 'https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072'
 
       try {
-        const resp = await fetch('https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072', { method: 'POST', body: fd });
-        //const resp = await fetch('https://hook.us2.make.com/a78ytrwcsd1v84qnt4cs6tail2yudlg8', { method: 'POST', body: fd }); //Webhook de prueba
-        if (!resp.ok) throw new Error(await resp.text());
+        const resp = await fetch(
+          'https://hook.us2.make.com/35ptru2xinqaau04iybig6xkfwty2072',
+          { method: 'POST', body: fd }
+        );
+
+        // Leer respuesta como texto
+        let respuestaTexto = await resp.text();
+
+        // Intentar parsear como JSON
+        let data;
+        try { 
+          data = JSON.parse(respuestaTexto);
+        } catch {
+          data = null; // No es JSON
+        }
+
+        // Si Make devolvió error por campos vacíos
+        if (!resp.ok || (data && data.ok === false)) {
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al enviar',
+            text: data?.mensaje || respuestaTexto || 'Error desconocido'
+          });
+
+          throw new Error(data?.mensaje || respuestaTexto);
+        }
+
         Swal.fire({
           icon: 'success',
-          title: 'Solicitud completada',
-          text: 'Su Solicitud fue enviada correctamente.'
+          title: 'Solicitud enviada',
+          text: 'Su solicitud fue registrada correctamente.'
         });
-        e.target.reset();
+
+        // Reset seguro
+        form.reset();
+        unidadSelect.clear();
         document.getElementById('estado').value = 'Pendiente';
         document.getElementById('personalAsignado').value = 'Por definir';
         document.getElementById('fechaAsignacion').value = '';
-        unidadSelect.clear();
+
       } catch (err) {
-        console.error(err);
-        //alert('No se pudo enviar la solicitud. Verifique la URL/permiso del webhook (y CORS).');
+        console.error('Error al enviar:', err);
         Swal.fire({
-          icon: 'warning',
-          title: 'Error de envío',
-          text: 'No se pudo enviar sus solicitud, intente nuevamente o espere unos minutos. Si el error se mantiene contactese con la Dirección de Aseguramiento de la Calidad'
+          icon: 'error',
+          title: 'Error al enviar',
+          text: 'No se pudo enviar la solicitud. Intente nuevamente.'
         });
       } finally {
-        btn.disabled = false; btn.textContent = 'Enviar solicitud';
+        btn.disabled = false;
+        btn.textContent = 'Enviar solicitud';
       }
-    });
+    }
+
+
     jsonp(API_URL, { test: 1 }).catch(()=>{});
     // 1) Al cargar la página:
     syncNormativaEnabled();
@@ -421,4 +479,3 @@ border: 0;
   </script>
 </body>
 </html>
-
